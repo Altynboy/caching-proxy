@@ -8,7 +8,6 @@ import (
 )
 
 func FromCache(w http.ResponseWriter, r *http.Request, cache []byte) error {
-	w.Header().Set("X-Cache", "HIT")
 
 	resp, err := http.ReadResponse(bufio.NewReader(bytes.NewReader(cache)), r)
 	if err != nil {
@@ -20,7 +19,9 @@ func FromCache(w http.ResponseWriter, r *http.Request, cache []byte) error {
 			w.Header().Add(h, val)
 		}
 	}
+	w.Header().Set("X-Cache", "HIT")
 	w.WriteHeader(resp.StatusCode)
+
 	io.Copy(w, resp.Body)
 	resp.Body.Close()
 	return nil

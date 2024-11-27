@@ -1,6 +1,7 @@
 package components
 
 import (
+	"bytes"
 	"caching-proxy/cache"
 	"io"
 	"log"
@@ -30,17 +31,23 @@ func ProxyClient(url string, w http.ResponseWriter, r *http.Request, db *cache.C
 	}
 	defer resp.Body.Close()
 
-	err = db.Set(url, *resp, 1*time.Minute)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	resp.Body = io.NopCloser(bytes.NewBuffer(body))
+
+	err = db.Set(url, *resp, 1*time.Hour)
 	if err != nil {
 		log.Fatalf("Can't cache response for %s got an error %s", url, err)
 	}
+
 	for h, val := range resp.Header {
 		w.Header()[h] = val
 	}
+	w.Header().Set("X-Cache", "MISS")
 
-	w.WriteHeader(resp.StatusCode)
-
-	_, err = io.Copy(w, resp.Body)
+	_, err = w.Write(body)
 	if err != nil {
 		return err
 	}

@@ -55,16 +55,19 @@ func ProxyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	value, ok := db.Get(targetUrl.String())
+	value, ok, err := db.Get(targetUrl.String())
+	if err != nil {
+		log.Fatalf("Error while get err: %s", err)
+		return
+	}
 	if ok {
 		err = response.FromCache(w, r, []byte(value))
 		if err != nil {
 			log.Fatalf("Got err when reading cache %s", err)
 			return
 		}
+		return
 	}
-
-	w.Header().Add("X-Cache", "MISS")
 
 	err = components.ProxyClient(targetUrl.String(), w, r, db)
 	if err != nil {
